@@ -44,21 +44,3 @@ final $typed_data.Uint8List messageAckDescriptor = $convert.base64Decode(
     'CgpNZXNzYWdlQWNrEhoKCHJlY2lldmVkGAEgASgIUghyZWNpZXZlZBIWCgZzdGF0dXMYAiABKA'
     'lSBnN0YXR1cw==');
 
-const $core.Map<$core.String, $core.dynamic> AirServiceBase$json = {
-  '1': 'AirService',
-  '2': [
-    {'1': 'SendMessage', '2': '.aircipher.Message', '3': '.aircipher.MessageAck'},
-  ],
-};
-
-@$core.Deprecated('Use airServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> AirServiceBase$messageJson = {
-  '.aircipher.Message': Message$json,
-  '.aircipher.MessageAck': MessageAck$json,
-};
-
-/// Descriptor for `AirService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List airServiceDescriptor = $convert.base64Decode(
-    'CgpBaXJTZXJ2aWNlEjgKC1NlbmRNZXNzYWdlEhIuYWlyY2lwaGVyLk1lc3NhZ2UaFS5haXJjaX'
-    'BoZXIuTWVzc2FnZUFjaw==');
-

@@ -9,7 +9,6 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
-import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
@@ -159,15 +158,6 @@ class MessageAck extends $pb.GeneratedMessage {
   $core.bool hasStatus() => $_has(1);
   @$pb.TagNumber(2)
   void clearStatus() => $_clearField(2);
-}
-
-class AirServiceApi {
-  $pb.RpcClient _client;
-  AirServiceApi(this._client);
-
-  $async.Future<MessageAck> sendMessage($pb.ClientContext? ctx, Message request) =>
-    _client.invoke<MessageAck>(ctx, 'AirService', 'SendMessage', request, MessageAck())
-  ;
 }
 
 
