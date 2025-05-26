@@ -1,0 +1,1 @@
+enum MessageType { discovery, offer, answer }
