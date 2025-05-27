@@ -17,6 +17,7 @@ class WebRTCService {
   Future<String> createOffer() async{
     await initConnection(isCaller: true);
     final dataChannelDict = RTCDataChannelInit();
+    _dataChannel = await _peerConnection!.createDataChannel("data", dataChannelDict);
     _setupDataChannel();
     final offer = await _peerConnection!.createOffer();
     await _peerConnection!.setLocalDescription(offer);
