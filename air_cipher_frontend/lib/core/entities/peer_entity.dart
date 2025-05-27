@@ -2,6 +2,7 @@ import 'dart:io';
 
 class PeerInfo {
   final String id;
-  final InternetAddress address;
-  PeerInfo({required this.id, required this.address});
+  final InternetAddress? address;
+  final int? port;
+  PeerInfo({required this.id, this.address,this.port});
 }
