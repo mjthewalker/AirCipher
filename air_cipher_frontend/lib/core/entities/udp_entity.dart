@@ -6,8 +6,8 @@ class UdpSignalMessage {
   final String id;
   final MessageType type;
   final String? sdp;
-  late final InternetAddress? ip;
-  late final int? port;
+   InternetAddress? ip;
+   int? port;
 
   UdpSignalMessage({required this.id, required this.type, this.sdp,this.ip,this.port});
 
