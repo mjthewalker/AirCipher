@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/network/peer_discovery.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/network/webrtc_service.dart';
+import 'package:frontend/features/chat/presentation/screens/channel_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,13 @@ class _HomeScreenState extends State<HomeScreen> {
           _availablePeers[peer.id] =
               PeerInfo(id: peer.id, address: peer.ip, port: peer.port);
         });
+      }
+    });
+    webrtc.onConnectionEstablished.listen((_) {
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ChannelScreen(webrtc : webrtc)),
+        );
       }
     });
   }

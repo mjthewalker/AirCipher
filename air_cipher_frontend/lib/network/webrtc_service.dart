@@ -1,12 +1,26 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'dart:async';
 class WebRTCService {
   RTCPeerConnection? _peerConnection;
   RTCDataChannel? _dataChannel;
   final config = {
     'iceServers': []
   };
+  final StreamController<void> _connectionEstablishedController = StreamController<void>.broadcast();
+  Stream<void> get onConnectionEstablished => _connectionEstablishedController.stream;
   Future<void> initConnection({bool isCaller = false}) async {
     _peerConnection = await createPeerConnection(config);
+    _peerConnection?.onConnectionState = (RTCPeerConnectionState state){
+          print("peer connection state:$state");
+    };
+    _peerConnection?.onIceConnectionState = (RTCIceConnectionState state) {
+      print("🌐 ICE connection state: $state");
+
+      if (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
+          state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        _connectionEstablishedController.add(null);
+      }
+    };
     if (!isCaller) {
       _peerConnection?.onDataChannel = (RTCDataChannel channel) {
         _dataChannel = channel;
