@@ -4,12 +4,15 @@ import 'package:frontend/core/enums/message_type.dart';
 
 class UdpSignalMessage {
   final String id;
-  final MessageType type;
+  final MessagesType type;
   final String? sdp;
    InternetAddress? ip;
    int? port;
+   String? candidate;
+   String? sdpMid;
+   int? sdpMLineIndex;
 
-  UdpSignalMessage({required this.id, required this.type, this.sdp,this.ip,this.port});
+  UdpSignalMessage({required this.id, required this.type, this.sdp,this.ip,this.port,this.candidate,this.sdpMid,this.sdpMLineIndex});
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -22,7 +25,7 @@ class UdpSignalMessage {
       final data = jsonDecode(jsonStr);
       return UdpSignalMessage(
         id: data['id'],
-        type: MessageType.values.firstWhere((e) => e.name == data['type']),
+        type: MessagesType.values.firstWhere((e) => e.name == data['type']),
         sdp: data['sdp'],
       );
     } catch (_) {

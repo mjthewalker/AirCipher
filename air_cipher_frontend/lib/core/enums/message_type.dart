@@ -1,1 +1,1 @@
-enum MessageType { discovery, offer, answer }
+enum MessagesType { discovery, offer, answer,candidate }

@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/core/entities/udp_entity.dart';
 import 'package:frontend/core/enums/message_type.dart';
-
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class PeerDiscoveryService {
 
@@ -37,23 +37,31 @@ class PeerDiscoveryService {
         msg?.port = datagram.port;
         if (msg != null && msg.id != id ) {
           switch (msg.type) {
-            case MessageType.discovery:
+            case MessagesType.discovery:
               _peerStreamController.add(msg);
               break;
-            case MessageType.offer:
+            case MessagesType.offer:
               final answer = await webRTCService.createAnswer(msg.sdp!);
               sendAnswer(answer,PeerInfo(id: id,address: msg.ip,port: msg.port));
               break;
-            case MessageType.answer:
+            case MessagesType.answer:
               await webRTCService.setRemoteAnswer(msg.sdp!);
               break;
+            case MessagesType.candidate:
+              await webRTCService.addIceCandidate(RTCIceCandidate(
+                msg.candidate!,
+                msg.sdpMid!,
+                msg.sdpMLineIndex!,
+              ));
+              break;
+
           }
         }
 
       }
     });
 
-    final msg = UdpSignalMessage(id: id, type: MessageType.discovery);
+    final msg = UdpSignalMessage(id: id, type: MessagesType.discovery);
       _broadcast(msg);
       print("Peer discovery started on port $port with ID $id");
 
@@ -68,7 +76,7 @@ class PeerDiscoveryService {
   void sendOffer(String sdp,PeerInfo peer) {
     final msg = UdpSignalMessage(
         id: id,
-        type: MessageType.offer,
+        type: MessagesType.offer,
         sdp: sdp,);
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket?.send(data,peer.address!,peer.port!);
@@ -77,11 +85,22 @@ class PeerDiscoveryService {
   void sendAnswer(String sdp,PeerInfo peer) {
     final msg = UdpSignalMessage(
         id: id,
-        type: MessageType.answer,
+        type: MessagesType.answer,
         sdp: sdp,
     );
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket?.send(data,peer.address!,peer.port!);
+  }
+  void sendCandidate(RTCIceCandidate candidate, PeerInfo peer) {
+    final msg = UdpSignalMessage(
+      id: id,
+      type: MessagesType.candidate,
+      candidate: candidate.candidate,
+      sdpMid: candidate.sdpMid,
+      sdpMLineIndex: candidate.sdpMLineIndex,
+    );
+    final data = utf8.encode(jsonEncode(msg.toJson()));
+    _socket?.send(data, peer.address!, peer.port!);
   }
   void stop() {
     _socket?.close();
