@@ -16,6 +16,8 @@ class WebRTCService {
 
   Stream<void> get onConnectionEstablished => _connectionEstablishedController.stream;
   Stream<RTCIceCandidate> get onIceCandidate => _iceCandidateController.stream;
+  final StreamController<String> _messageController = StreamController<String>.broadcast();
+  Stream<String> get onMessageReceived => _messageController.stream;
 
   Future<void> initConnection({bool isCaller = false}) async {
     _peerConnection = await createPeerConnection(config);
@@ -74,6 +76,9 @@ class WebRTCService {
   void _setupDataChannel() {
     _dataChannel?.onMessage = (message) {
       print("💬 Received: ${message.text}");
+      if (!message.isBinary) {
+        _messageController.add(message.text);
+      }
     };
     _dataChannel?.onDataChannelState = (state) {
       print("🔌 Data channel state: $state");
@@ -82,5 +87,11 @@ class WebRTCService {
 
   void sendMessage(String message) {
     _dataChannel?.send(RTCDataChannelMessage(message));
+  }
+  void dispose() {
+    _messageController.close();
+    _connectionEstablishedController.close();
+    _peerConnection?.close();
+    _peerConnection = null;
   }
 }
