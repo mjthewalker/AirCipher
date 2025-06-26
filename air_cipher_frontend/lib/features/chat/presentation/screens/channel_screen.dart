@@ -3,7 +3,8 @@ import 'package:frontend/network/webrtc_service.dart';
 
 class ChannelScreen extends StatefulWidget {
   final WebRTCService webrtc;
-  const ChannelScreen({super.key, required this.webrtc});
+  final String peerId;
+  const ChannelScreen({super.key, required this.webrtc,required this.peerId});
 
   @override
   State<ChannelScreen> createState() => _ChannelScreenState();

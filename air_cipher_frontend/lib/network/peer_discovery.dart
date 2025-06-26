@@ -14,7 +14,7 @@ class PeerDiscoveryService {
   final String id;
   final SignalService signal;
   final WebRTCService webRTCService;
-
+  late final Map<String,dynamic> bundleJson;
   RawDatagramSocket? _socket;
   bool _started = false;
   Timer? _discoveryTimer;
@@ -39,7 +39,7 @@ class PeerDiscoveryService {
     _socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port);
     _socket!.broadcastEnabled = true;
     _socket!.listen(_handleSocketEvent);
-
+     bundleJson = await signal.getPreKeyBundle();
 
     await _sendDiscovery();
     _discoveryTimer = Timer.periodic(
@@ -81,12 +81,15 @@ class PeerDiscoveryService {
       case MessagesType.offer:
         print("📡 Received offer from ${msg.ip}");
         _currentPeer = PeerInfo(id: msg.id, address: msg.ip, port: msg.port);
+        await signal.processRemoteBundle(msg.id, jsonEncode(msg.bundle));
         final answer = await webRTCService.createAnswer(msg.sdp!);
-        sendAnswer(answer, _currentPeer!);
+        final myBundle = await signal.getPreKeyBundle();
+        sendAnswer(answer, _currentPeer!,myBundle);
         break;
       case MessagesType.answer:
         print("✅ Received answer from ${msg.ip}");
         _currentPeer = PeerInfo(id: msg.id, address: msg.ip, port: msg.port);
+        await signal.processRemoteBundle(msg.id, jsonEncode(msg.bundle));
         await webRTCService.setRemoteAnswer(msg.sdp!);
         break;
       case MessagesType.candidate:
@@ -128,13 +131,13 @@ class PeerDiscoveryService {
 
   void sendOffer(String sdp, PeerInfo peer) {
     _currentPeer = peer;
-    final msg = UdpSignalMessage(id: id, type: MessagesType.offer, sdp: sdp);
+    final msg = UdpSignalMessage(id: id, type: MessagesType.offer, sdp: sdp,bundle: bundleJson);
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
   }
 
-  void sendAnswer(String sdp, PeerInfo peer) {
-    final msg = UdpSignalMessage(id: id, type: MessagesType.answer, sdp: sdp);
+  void sendAnswer(String sdp, PeerInfo peer,Map<String,dynamic> bundle) {
+    final msg = UdpSignalMessage(id: id, type: MessagesType.answer, sdp: sdp,bundle: bundle);
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
   }

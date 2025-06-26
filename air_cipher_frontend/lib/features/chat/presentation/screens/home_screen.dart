@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late final SignalService signalService;
   late final WebRTCService webrtc;
   late final PeerDiscoveryService discovery;
+  String? recieverId;
+  bool sent = false;
   @override
   void initState() {
     super.initState();
@@ -48,9 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).pop();
       }
 
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ChannelScreen(webrtc: webrtc)),
-      );
+      if (recieverId != null || sent == false){
+        print("lalal");
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ChannelScreen(webrtc: webrtc,peerId:recieverId!)),
+        );
+      }
+
     });
   }
 
@@ -73,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _connectToPeer(PeerInfo peer) async {
+    sent = true;
     _navigated = false;
     _timeoutTimer?.cancel();
     showDialog(
@@ -82,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     final sdp = await webrtc.createOffer();
     discovery.sendOffer(sdp, peer);
+    recieverId=peer.id;
     _timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (!_navigated && mounted) {
 
