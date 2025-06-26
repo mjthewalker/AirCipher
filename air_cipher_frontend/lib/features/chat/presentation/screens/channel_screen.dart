@@ -37,6 +37,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    widget.webrtc.dispose();
     super.dispose();
   }
 
