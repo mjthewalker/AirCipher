@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:frontend/network/signal_service.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/network/peer_discovery.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/network/webrtc_service.dart';
 import 'package:frontend/features/chat/presentation/screens/channel_screen.dart';
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -14,19 +15,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final WebRTCService webrtc = WebRTCService();
-  late final PeerDiscoveryService discovery = PeerDiscoveryService(webrtc);
-
   final Map<String, PeerInfo> _availablePeers = {};
   StreamSubscription<void>? _connSub;
   Timer? _timeoutTimer;
   bool _started = false;
   bool _navigated = false;
-
+  final peerId = const Uuid().v4();
+  late final SignalService signalService;
+  late final WebRTCService webrtc;
+  late final PeerDiscoveryService discovery;
   @override
   void initState() {
     super.initState();
-
+    signalService = SignalService(peerId);
+    webrtc = WebRTCService(signalService);
+    discovery = PeerDiscoveryService(webrtc, signalService);
     discovery.onPeerFound.listen((peer) {
       if (!_availablePeers.containsKey(peer.id)) {
         setState(() {

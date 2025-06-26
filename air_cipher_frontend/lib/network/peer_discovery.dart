@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:frontend/network/signal_service.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:network_info_plus/network_info_plus.dart';
-import 'package:uuid/uuid.dart';
 import 'package:frontend/network/webrtc_service.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/core/entities/udp_entity.dart';
@@ -12,17 +11,20 @@ import 'package:frontend/core/enums/message_type.dart';
 
 class PeerDiscoveryService {
   final int port = 45678;
-  final String id = const Uuid().v4();
+  final String id;
+  final SignalService signal;
+  final WebRTCService webRTCService;
+
   RawDatagramSocket? _socket;
   bool _started = false;
   Timer? _discoveryTimer;
-  final WebRTCService webRTCService;
   PeerInfo? _currentPeer;
+  late String myBundle;
 
   final _peerFoundController = StreamController<UdpSignalMessage>.broadcast();
   Stream<UdpSignalMessage> get onPeerFound => _peerFoundController.stream;
 
-  PeerDiscoveryService(this.webRTCService) {
+  PeerDiscoveryService(this.webRTCService, this.signal) : id = signal.id {
     webRTCService.onIceCandidate.listen((candidate) {
       if (_currentPeer != null) {
         sendCandidate(candidate, _currentPeer!);

@@ -8,6 +8,7 @@ class UdpSignalMessage {
   String? sdp;
   String? candidate;
   String? sdpMid;
+  Map<String, dynamic>? bundle;
   int? sdpMLineIndex;
   InternetAddress? ip;
   int? port;
@@ -19,6 +20,7 @@ class UdpSignalMessage {
     this.candidate,
     this.sdpMid,
     this.sdpMLineIndex,
+    this.bundle,
     this.ip,
     this.port,
   });
@@ -31,6 +33,7 @@ class UdpSignalMessage {
       sdp: json['sdp'],
       candidate: json['candidate'],
       sdpMid: json['sdpMid'],
+      bundle: json['bundle'],
       sdpMLineIndex: json['sdpMLineIndex'],
     );
   }
@@ -41,6 +44,7 @@ class UdpSignalMessage {
     if (sdp != null) 'sdp': sdp,
     if (candidate != null) 'candidate': candidate,
     if (sdpMid != null) 'sdpMid': sdpMid,
+    if (bundle != null) 'bundle': bundle,
     if (sdpMLineIndex != null) 'sdpMLineIndex': sdpMLineIndex,
   };
 }

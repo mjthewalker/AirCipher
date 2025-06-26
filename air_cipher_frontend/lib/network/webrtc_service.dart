@@ -1,16 +1,17 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'dart:async';
-
+import 'package:frontend/network/signal_service.dart';
 class WebRTCService {
   RTCPeerConnection? _peerConnection;
   RTCDataChannel? _dataChannel;
-
+  late final SignalService signal;
   final config = {
     'iceServers': [],
     'iceTransportPolicy': 'all',
     'sdpSemantics': 'unified-plan',
   };
-
+  WebRTCService(this.signal) {
+  }
   final StreamController<void> _connectionEstablishedController = StreamController<void>.broadcast();
   final StreamController<RTCIceCandidate> _iceCandidateController = StreamController<RTCIceCandidate>.broadcast();
 
@@ -73,11 +74,12 @@ class WebRTCService {
     await _peerConnection?.addCandidate(candidate);
   }
 
-  void _setupDataChannel() {
-    _dataChannel?.onMessage = (message) {
+  void _setupDataChannel() async {
+    _dataChannel?.onMessage = (message) async {
       print("💬 Received: ${message.text}");
       if (!message.isBinary) {
-        _messageController.add(message.text);
+        final decrypted = await signal.decrypt(message.text, signal.id);
+        _messageController.add(decrypted);
       }
     };
     _dataChannel?.onDataChannelState = (state) {
@@ -85,9 +87,11 @@ class WebRTCService {
     };
   }
 
-  void sendMessage(String message) {
-    _dataChannel?.send(RTCDataChannelMessage(message));
+  Future<void> sendMessage(String message, String peerId) async {
+    final encrypted = await signal.encrypt(message, peerId);
+    _dataChannel?.send(RTCDataChannelMessage(encrypted));
   }
+
   void dispose() {
     _messageController.close();
     _connectionEstablishedController.close();

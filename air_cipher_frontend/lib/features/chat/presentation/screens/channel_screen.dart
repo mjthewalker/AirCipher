@@ -27,7 +27,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
 
   void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
-    widget.webrtc.sendMessage(text);
+    widget.webrtc.sendMessage(text,'1');
     setState(() {
       _messages.add("📤 You: $text");
     });
