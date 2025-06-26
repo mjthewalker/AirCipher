@@ -35,8 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     });
-
-
     _connSub = webrtc.onConnectionEstablished.listen((_) {
       if (_navigated) return;
       _navigated = true;
@@ -55,45 +53,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    discovery.stop();
     _connSub?.cancel();
     _timeoutTimer?.cancel();
     super.dispose();
   }
 
   void _startDiscovery() async {
-    final status = await Permission.location.status;
-    if (!status.isGranted) {
-      final result = await Permission.location.request();
-      if (!result.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission is required.')),
-        );
-        return;
-      }
-    }
     if (!_started) {
       discovery.start();
       setState(() => _started = true);
     }
+    else{
+      discovery.stopDiscovery();
+      setState(() => _started = false);
+    }
   }
 
   void _connectToPeer(PeerInfo peer) async {
-    // Reset state
     _navigated = false;
     _timeoutTimer?.cancel();
-
-    // Show spinner
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-
-    // Send the offer
     final sdp = await webrtc.createOffer();
     discovery.sendOffer(sdp, peer);
-
     _timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (!_navigated && mounted) {
 
@@ -116,8 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             ElevatedButton(
-              onPressed: _started ? null : _startDiscovery,
-              child: Text(_started ? "Discovery Started" : "Start Peer Discovery"),
+              onPressed:  _startDiscovery,
+              child: Text(_started ? "Stop Discovery" : "Start Peer Discovery"),
             ),
             const SizedBox(height: 16),
             const Text(

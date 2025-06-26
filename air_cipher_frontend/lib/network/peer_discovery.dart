@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:uuid/uuid.dart';
-
 import 'package:frontend/network/webrtc_service.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/core/entities/udp_entity.dart';
@@ -16,7 +15,7 @@ class PeerDiscoveryService {
   final String id = const Uuid().v4();
   RawDatagramSocket? _socket;
   bool _started = false;
-
+  Timer? _discoveryTimer;
   final WebRTCService webRTCService;
   PeerInfo? _currentPeer;
 
@@ -40,12 +39,21 @@ class PeerDiscoveryService {
     _socket!.listen(_handleSocketEvent);
 
 
-    final discoveryMsg = UdpSignalMessage(id: id, type: MessagesType.discovery);
-    await _broadcast(discoveryMsg);
+    await _sendDiscovery();
+    _discoveryTimer = Timer.periodic(
+      const Duration(seconds: 5),
+          (_) => _sendDiscovery(),
+    );
 
     print("🔍 Peer discovery started (ID: $id, port: $port)");
   }
-
+  Future<void> _sendDiscovery() async {
+    final discoveryMsg = UdpSignalMessage(id: id, type: MessagesType.discovery);
+    final data = utf8.encode(jsonEncode(discoveryMsg.toJson()));
+    final bcast = await _getBroadcastAddress();
+    _socket?.send(data, bcast, port);
+    print("📡 Broadcast discovery ping to $bcast");
+  }
   void _handleSocketEvent(RawSocketEvent event) async {
     if (event != RawSocketEvent.read) return;
     final datagram = _socket!.receive();
@@ -140,9 +148,12 @@ class PeerDiscoveryService {
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
   }
-
-  void stop() {
-    _socket?.close();
-    _peerFoundController.close();
+  void stopDiscovery() {
+    if (!_started) return;
+    _started = false;
+    _discoveryTimer?.cancel();
+    print("🛑 Peer discovery stopped");
   }
+
+
 }
