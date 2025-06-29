@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final PeerDiscoveryService discovery;
   String? recieverId;
   bool sent = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,11 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).pop();
       }
 
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ChannelScreen(webrtc: webrtc,peerId:recieverId)),
-        );
-
-
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ChannelScreen(webrtc: webrtc)),
+      );
     });
   }
 
@@ -70,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
       discovery.start();
       setState(() => _started = true);
     }
-    else{
+    else {
       discovery.stop();
       setState(() => _started = false);
     }
@@ -85,12 +84,11 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-    final sdp = await webrtc.createOffer();
+    final sdp = await webrtc.createChatOffer();
     discovery.sendOffer(sdp, peer);
-    recieverId=peer.id;
+    recieverId = peer.id;
     _timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (!_navigated && mounted) {
-
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
@@ -103,42 +101,132 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("AirCipher")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            ElevatedButton(
-              onPressed:  _startDiscovery,
-              child: Text(_started ? "Stop Discovery" : "Start Peer Discovery"),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Discovered Peers:",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _availablePeers.isEmpty
-                  ? const Center(child: Text('Searching for peers...'))
-                  : ListView(
-                children: _availablePeers.entries.map((e) {
-                  final peerId = e.key;
-                  final info = e.value;
-                  return Card(
-                    elevation: 4,
-                    child: ListTile(
-                      leading: const Icon(Icons.wifi_tethering),
-                      title: Text('Peer ID: $peerId'),
-                      subtitle: const Text('Tap to connect'),
-                      onTap: () => _connectToPeer(info),
-                    ),
-                  );
-                }).toList(),
+    return Theme(
+      data: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF1E1E2C),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF2D2D44),
+          elevation: 0,
+        ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('🔒 AirCipher'),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-          ],
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Discovery button
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: const StadiumBorder(),
+                  elevation: 4,
+                ),
+                onPressed: _startDiscovery,
+                child: Text(
+                  _started ? '🔴 Stop Discovery' : '🟢 Start Discovery',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Header
+              Row(
+                children: const [
+                  Icon(Icons.wifi_tethering, color: Colors.cyanAccent),
+                  SizedBox(width: 8),
+                  Text(
+                    'Discovered Peers',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Peer list
+              Expanded(
+                child: _availablePeers.isEmpty
+                    ? Center(
+                  child: Text(
+                    _started
+                        ? 'Searching for peers…'
+                        : 'Tap “Start Discovery” above',
+                    style:
+                    TextStyle(color: Colors.white38, fontSize: 16),
+                  ),
+                )
+                    : ListView.builder(
+                  itemCount: _availablePeers.length,
+                  itemBuilder: (ctx, i) {
+                    final peer = _availablePeers.values.elementAt(i);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: InkWell(
+                        onTap: () => _connectToPeer(peer),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF3A3F51),
+                                Color(0xFF2D2F44)
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black54,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: ListTile(
+                            leading: const Icon(
+                              Icons.person_pin_circle,
+                              color: Colors.cyanAccent,
+                              size: 32,
+                            ),
+                            title: Text(
+                              'Peer ID: ${peer.id}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            subtitle: Text(
+                              '${peer.address}:${peer.port}',
+                              style: const TextStyle(color: Colors.white54),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
