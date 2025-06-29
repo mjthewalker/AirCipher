@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:frontend/network/signal_service.dart';
+
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:uuid/uuid.dart';
+
 import 'package:frontend/network/webrtc_service.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/core/entities/udp_entity.dart';
@@ -11,20 +13,17 @@ import 'package:frontend/core/enums/message_type.dart';
 
 class PeerDiscoveryService {
   final int port = 45678;
-  final String id;
-  final SignalService signal;
-  final WebRTCService webRTCService;
-  late final Map<String,dynamic> bundleJson;
+  final String id = const Uuid().v4();
   RawDatagramSocket? _socket;
   bool _started = false;
-  Timer? _discoveryTimer;
+
+  final WebRTCService webRTCService;
   PeerInfo? _currentPeer;
-  late String myBundle;
 
   final _peerFoundController = StreamController<UdpSignalMessage>.broadcast();
   Stream<UdpSignalMessage> get onPeerFound => _peerFoundController.stream;
 
-  PeerDiscoveryService(this.webRTCService, this.signal) : id = signal.id {
+  PeerDiscoveryService(this.webRTCService) {
     webRTCService.onIceCandidate.listen((candidate) {
       if (_currentPeer != null) {
         sendCandidate(candidate, _currentPeer!);
@@ -39,23 +38,14 @@ class PeerDiscoveryService {
     _socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port);
     _socket!.broadcastEnabled = true;
     _socket!.listen(_handleSocketEvent);
-     bundleJson = await signal.getPreKeyBundle();
 
-    await _sendDiscovery();
-    _discoveryTimer = Timer.periodic(
-      const Duration(seconds: 5),
-          (_) => _sendDiscovery(),
-    );
+
+    final discoveryMsg = UdpSignalMessage(id: id, type: MessagesType.discovery);
+    await _broadcast(discoveryMsg);
 
     print("🔍 Peer discovery started (ID: $id, port: $port)");
   }
-  Future<void> _sendDiscovery() async {
-    final discoveryMsg = UdpSignalMessage(id: id, type: MessagesType.discovery);
-    final data = utf8.encode(jsonEncode(discoveryMsg.toJson()));
-    final bcast = await _getBroadcastAddress();
-    _socket?.send(data, bcast, port);
-    print("📡 Broadcast discovery ping to $bcast");
-  }
+
   void _handleSocketEvent(RawSocketEvent event) async {
     if (event != RawSocketEvent.read) return;
     final datagram = _socket!.receive();
@@ -81,15 +71,12 @@ class PeerDiscoveryService {
       case MessagesType.offer:
         print("📡 Received offer from ${msg.ip}");
         _currentPeer = PeerInfo(id: msg.id, address: msg.ip, port: msg.port);
-        await signal.processRemoteBundle(msg.id, jsonEncode(msg.bundle));
         final answer = await webRTCService.createAnswer(msg.sdp!);
-        final myBundle = await signal.getPreKeyBundle();
-        sendAnswer(answer, _currentPeer!,myBundle);
+        sendAnswer(answer, _currentPeer!);
         break;
       case MessagesType.answer:
         print("✅ Received answer from ${msg.ip}");
         _currentPeer = PeerInfo(id: msg.id, address: msg.ip, port: msg.port);
-        await signal.processRemoteBundle(msg.id, jsonEncode(msg.bundle));
         await webRTCService.setRemoteAnswer(msg.sdp!);
         break;
       case MessagesType.candidate:
@@ -131,13 +118,13 @@ class PeerDiscoveryService {
 
   void sendOffer(String sdp, PeerInfo peer) {
     _currentPeer = peer;
-    final msg = UdpSignalMessage(id: id, type: MessagesType.offer, sdp: sdp,bundle: bundleJson);
+    final msg = UdpSignalMessage(id: id, type: MessagesType.offer, sdp: sdp);
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
   }
 
-  void sendAnswer(String sdp, PeerInfo peer,Map<String,dynamic> bundle) {
-    final msg = UdpSignalMessage(id: id, type: MessagesType.answer, sdp: sdp,bundle: bundle);
+  void sendAnswer(String sdp, PeerInfo peer) {
+    final msg = UdpSignalMessage(id: id, type: MessagesType.answer, sdp: sdp);
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
   }
@@ -153,12 +140,9 @@ class PeerDiscoveryService {
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
   }
-  void stopDiscovery() {
-    if (!_started) return;
-    _started = false;
-    _discoveryTimer?.cancel();
-    print("🛑 Peer discovery stopped");
+
+  void stop() {
+    _socket?.close();
+    _peerFoundController.close();
   }
-
-
 }

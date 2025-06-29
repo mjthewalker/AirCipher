@@ -3,7 +3,7 @@ import 'package:frontend/network/webrtc_service.dart';
 
 class ChannelScreen extends StatefulWidget {
   final WebRTCService webrtc;
-  final String peerId;
+  final String? peerId;
   const ChannelScreen({super.key, required this.webrtc,required this.peerId});
 
   @override
@@ -28,7 +28,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
 
   void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
-    widget.webrtc.sendMessage(text,'1');
+    widget.webrtc.sendMessage(text);
     setState(() {
       _messages.add("📤 You: $text");
     });

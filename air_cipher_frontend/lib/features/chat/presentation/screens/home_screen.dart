@@ -30,8 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     signalService = SignalService(peerId);
-    webrtc = WebRTCService(signalService);
-    discovery = PeerDiscoveryService(webrtc, signalService);
+    webrtc = WebRTCService();
+    discovery = PeerDiscoveryService(webrtc);
     discovery.onPeerFound.listen((peer) {
       if (!_availablePeers.containsKey(peer.id)) {
         setState(() {
@@ -50,12 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).pop();
       }
 
-      if (recieverId != null || sent == false){
-        print("lalal");
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ChannelScreen(webrtc: webrtc,peerId:recieverId!)),
+          MaterialPageRoute(builder: (_) => ChannelScreen(webrtc: webrtc,peerId:recieverId)),
         );
-      }
+
 
     });
   }
@@ -73,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _started = true);
     }
     else{
-      discovery.stopDiscovery();
+      discovery.stop();
       setState(() => _started = false);
     }
   }
