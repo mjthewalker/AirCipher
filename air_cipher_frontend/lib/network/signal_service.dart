@@ -1,55 +1,83 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
+import 'package:crypto/crypto.dart';
 
 class SignalService {
   final String id;
-  final SimpleKeyPair _keyPair;
-  final SimplePublicKey _publicKey;
+  final SimpleKeyPair _x25519KeyPair;
+  final SimplePublicKey _x25519PublicKey;
+  final KeyPair _ed25519KeyPair;
+  final SimplePublicKey _ed25519PublicKey;
   final Map<String, SecretKey> _sharedSecrets = {};
 
-  SignalService._(this.id, this._keyPair, this._publicKey);
+  SignalService._(
+      this.id,
+      this._x25519KeyPair,
+      this._x25519PublicKey,
+      this._ed25519KeyPair,
+      this._ed25519PublicKey,
+      );
 
-  /// Creates and initializes the service (X25519 key pair)
+  /// Create with both X25519 and Ed25519 keys.
   static Future<SignalService> create(String id) async {
-    final keyPair = await X25519().newKeyPair();
-    final publicKey = await keyPair.extractPublicKey();
-    return SignalService._(id, keyPair, publicKey);
+    final xKeyPair = await X25519().newKeyPair();
+    final xPubKey = await xKeyPair.extractPublicKey();
+
+    final edKeyPair = await Ed25519().newKeyPair();
+    final edPubKey = await edKeyPair.extractPublicKey();
+
+    return SignalService._(id, xKeyPair, xPubKey, edKeyPair, edPubKey);
   }
 
-  /// (Optional) call after `create()` to log readiness.
   Future<void> init() async {
     print("🔐 SignalService ready for $id");
   }
 
-  /// Returns this peer’s public key for JSON transport.
+  /// Returns this peer’s public bundle, signed for authenticity.
   Future<Map<String, dynamic>> getPreKeyBundle() async {
-    final pubBytes = _publicKey.bytes;;
+    final message = utf8.encode(id) + _x25519PublicKey.bytes;
+    final signature = await Ed25519().sign(message, keyPair: _ed25519KeyPair);
+
     return {
       'senderId': id,
-      'publicKey': base64Encode(pubBytes),
+      'x25519Key': base64Encode(_x25519PublicKey.bytes),
+      'ed25519Key': base64Encode(_ed25519PublicKey.bytes),
+      'signature': base64Encode(signature.bytes),
     };
   }
 
-  /// Process peer's PreKey bundle and derive shared session key.
+  /// Validates and processes a remote pre-key bundle.
   Future<void> processRemoteBundle(Map<String, dynamic> bundle) async {
     final peerId = bundle['senderId'];
-    final peerKeyBytes = base64Decode(bundle['publicKey']);
-    final peerPubKey = SimplePublicKey(peerKeyBytes, type: KeyPairType.x25519);
+    final x25519Bytes = base64Decode(bundle['x25519Key']);
+    final ed25519Bytes = base64Decode(bundle['ed25519Key']);
+    final signatureBytes = base64Decode(bundle['signature']);
 
+    final edPubKey = SimplePublicKey(ed25519Bytes, type: KeyPairType.ed25519);
+    final message = utf8.encode(peerId) + x25519Bytes;
+
+    final isValid = await Ed25519().verify(
+      message,
+      signature: Signature(signatureBytes, publicKey: edPubKey),
+    );
+
+    if (!isValid) {
+      throw Exception("Signature verification failed for $peerId");
+    }
+
+    final xPubKey = SimplePublicKey(x25519Bytes, type: KeyPairType.x25519);
     final secretKey = await X25519().sharedSecretKey(
-      keyPair: _keyPair,
-      remotePublicKey: peerPubKey,
+      keyPair: _x25519KeyPair,
+      remotePublicKey: xPubKey,
     );
 
     _sharedSecrets[peerId] = secretKey;
-    print("🔑 Session established with $peerId");
+    print("✅ Verified & established session with $peerId");
   }
 
-  /// Returns true if a session exists for [peerId].
   bool hasSession(String peerId) => _sharedSecrets.containsKey(peerId);
 
-  /// Encrypt plaintext for [peerId], returns JSON string.
   Future<String> encrypt(String plaintext, String peerId) async {
     final secretKey = _sharedSecrets[peerId];
     if (secretKey == null) {
@@ -71,7 +99,6 @@ class SignalService {
     });
   }
 
-  /// Decrypt raw JSON string from [peerId] into UTF-8 string.
   Future<String> decrypt(Uint8List encryptedBytes, String peerId) async {
     final secretKey = _sharedSecrets[peerId];
     if (secretKey == null) {
@@ -90,5 +117,11 @@ class SignalService {
 
     final clearText = await algorithm.decrypt(secretBox, secretKey: secretKey);
     return utf8.decode(clearText);
+  }
+
+  /// Optional: Identity fingerprint for human verification
+  String getFingerprint() {
+    final digest = sha256.convert(_ed25519PublicKey.bytes);
+    return digest.toString().substring(0, 12); // Short fingerprint
   }
 }
