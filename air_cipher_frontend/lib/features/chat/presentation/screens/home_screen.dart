@@ -29,9 +29,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool sent = false;
 
   @override
-  void initState() {
+  void initState()  {
     super.initState();
-    signalService = SignalService(peerId);
+    _initServices();
+  }
+  void _initServices() async {
+    signalService = await SignalService.create(peerId);
     webrtc = WebRTCService(signalService);
     discovery = PeerDiscoveryService(webrtc,signalService,peerId);
 

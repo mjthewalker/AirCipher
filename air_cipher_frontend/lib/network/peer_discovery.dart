@@ -186,5 +186,6 @@ class PeerDiscoveryService {
   void stop() {
     _socket?.close();
     _peerFoundController.close();
+    _offerReceivedController.close();
   }
 }
