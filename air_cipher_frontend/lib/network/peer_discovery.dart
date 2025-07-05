@@ -4,23 +4,26 @@ import 'dart:io';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:frontend/network/webrtc_service.dart';
+import 'package:frontend/network/signal_service.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/core/entities/udp_entity.dart';
 import 'package:frontend/core/enums/message_type.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 class PeerDiscoveryService {
   final int port = 45678;
-  final String id = const Uuid().v4();
+  final String  id;
   RawDatagramSocket? _socket;
   bool _started = false;
 
   final WebRTCService webRTCService;
+  final SignalService signalService;
   PeerInfo? _currentPeer;
-
+  final _offerReceivedController = StreamController<String>.broadcast();
+  Stream<String> get onOfferReceived => _offerReceivedController.stream;
   final _peerFoundController = StreamController<UdpSignalMessage>.broadcast();
   Stream<UdpSignalMessage> get onPeerFound => _peerFoundController.stream;
-
-  PeerDiscoveryService(this.webRTCService) {
+  final Set<String> _bundlesSentTo = {};
+  PeerDiscoveryService(this.webRTCService,this.signalService,this.id) {
     webRTCService.onIceCandidate.listen((candidate) {
       if (_currentPeer != null) {
         sendCandidate(candidate, _currentPeer!);
@@ -58,25 +61,26 @@ class PeerDiscoveryService {
       print("🛑 Ignored self-message (ID: $id)");
       return;
     }
-
-    // Update _currentPeer on any direct incoming message
     _currentPeer = PeerInfo(id: msg.id, address: msg.ip, port: msg.port);
-
     switch (msg.type) {
+
       case MessagesType.discovery:
         print("👀 Peer discovery received from ${msg.ip}");
         _peerFoundController.add(msg);
+        final bundleJson = await signalService.getPreKeyBundle();
+        sendPreKeyBundle(bundleJson, _currentPeer!);
         break;
 
       case MessagesType.offer:
         print("📡 Received chat offer from ${msg.ip}");
-        final answer = await webRTCService.createChatAnswer(msg.sdp!);
+        _offerReceivedController.add(_currentPeer!.id);
+        final answer = await webRTCService.createChatAnswer(msg.sdp!,_currentPeer!.id);
         sendAnswer(answer, _currentPeer!);
         break;
 
       case MessagesType.answer:
         print("✅ Received chat answer from ${msg.ip}");
-        await webRTCService.setChatAnswer(msg.sdp!);
+        await webRTCService.setChatAnswer(msg.sdp!,_currentPeer!.id);
         break;
 
       case MessagesType.candidate:
@@ -96,6 +100,15 @@ class PeerDiscoveryService {
       case MessagesType.voiceAnswer:
         print("✅ Received voice answer from ${msg.ip}");
         await webRTCService.handleVoiceAnswer(msg.sdp!);
+        break;
+      case MessagesType.preKeyBundle:
+        await signalService.processRemoteBundle(msg.bundle!);
+        print("🔑 Signal session ready with ${msg.id}");
+        if (!_bundlesSentTo.contains(msg.id)) {
+          final responseBundle = await signalService.getPreKeyBundle();
+          sendPreKeyBundle(responseBundle, _currentPeer!);
+          _bundlesSentTo.add(msg.id);
+        }
         break;
 
       default:
@@ -159,6 +172,15 @@ class PeerDiscoveryService {
     final msg = UdpSignalMessage(id: id, type: MessagesType.voiceAnswer, sdp: sdp);
     final data = utf8.encode(jsonEncode(msg.toJson()));
     _socket!.send(data, peer.address!, peer.port!);
+  }
+  void sendPreKeyBundle(Map<String,dynamic> bundleJson, PeerInfo peer) {
+    final msg = UdpSignalMessage(
+      id:  id,
+      type: MessagesType.preKeyBundle,
+      bundle: bundleJson,
+    );
+    _socket!.send(utf8.encode(jsonEncode(msg.toJson())),
+        peer.address!, peer.port!);
   }
 
   void stop() {

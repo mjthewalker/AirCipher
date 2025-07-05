@@ -5,6 +5,7 @@ import 'package:frontend/core/enums/message_type.dart';
 class UdpSignalMessage {
   String id;
   MessagesType type;
+  String? jsonPayload;
   String? sdp;
   String? candidate;
   String? sdpMid;
@@ -16,6 +17,7 @@ class UdpSignalMessage {
   UdpSignalMessage({
     required this.id,
     required this.type,
+    this.jsonPayload,
     this.sdp,
     this.candidate,
     this.sdpMid,
@@ -32,6 +34,7 @@ class UdpSignalMessage {
       type: MessagesType.values.firstWhere((e) => e.toString().split('.').last == json['type']),
       sdp: json['sdp'],
       candidate: json['candidate'],
+      jsonPayload: json['jsonPayload'],
       sdpMid: json['sdpMid'],
       bundle: json['bundle'],
       sdpMLineIndex: json['sdpMLineIndex'],
@@ -43,6 +46,7 @@ class UdpSignalMessage {
     'type': type.toString().split('.').last,
     if (sdp != null) 'sdp': sdp,
     if (candidate != null) 'candidate': candidate,
+    if (jsonPayload!=null) 'jsonPayload' : jsonPayload,
     if (sdpMid != null) 'sdpMid': sdpMid,
     if (bundle != null) 'bundle': bundle,
     if (sdpMLineIndex != null) 'sdpMLineIndex': sdpMLineIndex,

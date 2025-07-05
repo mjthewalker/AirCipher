@@ -5,6 +5,7 @@ import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
 import 'dart:async';
 
 class PreKeyBundleJson {
+  final String senderId;
   final int registrationId;
   final int deviceId;
   final int? preKeyId;
@@ -15,6 +16,7 @@ class PreKeyBundleJson {
   final Uint8List identityKey;
 
   PreKeyBundleJson({
+    required this.senderId,
     required this.registrationId,
     required this.deviceId,
     required this.preKeyId,
@@ -27,6 +29,7 @@ class PreKeyBundleJson {
 
   Map<String, dynamic> toJson() {
     return {
+      'senderId': senderId,
       'registrationId': registrationId,
       'deviceId': deviceId,
       'preKeyId': preKeyId,
@@ -40,6 +43,7 @@ class PreKeyBundleJson {
 
   factory PreKeyBundleJson.fromJson(Map<String, dynamic> json) {
     return PreKeyBundleJson(
+      senderId:        json['senderId'],
       registrationId: json['registrationId'],
       deviceId: json['deviceId'],
       preKeyId: json['preKeyId'],
@@ -95,6 +99,7 @@ class SignalService {
     final signedPreKey = await _store.loadSignedPreKey(_signedPreKeyId);
     final regId = await _store.getLocalRegistrationId();
     return PreKeyBundleJson(
+      senderId:id,
       registrationId: regId,
       deviceId: 1,
       preKeyId: preKey.id,
@@ -114,11 +119,10 @@ class SignalService {
     ).toJson();
   }
 
-  Future<void> processRemoteBundle(String peerId, String bundleJson) async {
-    print("🔑 Processing PreKeyBundle for $peerId");
-    final bundleMap = jsonDecode(bundleJson);
+  Future<void> processRemoteBundle(Map<String, dynamic> bundleMap) async {
     final bundle = PreKeyBundleJson.fromJson(bundleMap);
-
+    final peerId = bundle.senderId;
+    print("🔑 Processing PreKeyBundle for $peerId");
     ECPublicKey? preKeyPublic;
     if (bundle.preKeyPublic != null) {
       preKeyPublic = Curve.decodePoint(bundle.preKeyPublic!, 0);
@@ -147,38 +151,47 @@ class SignalService {
     _sessionCiphers[peerId] = SessionCipher.fromStore(_store, remoteAddress);
   }
 
-  Future<String> encrypt(String plaintext, String peerId) async {
+  Future<Uint8List> encrypt(String plaintext, String peerId) async {
     final cipher = _sessionCiphers[peerId]!;
     final ciphertext = await cipher.encrypt(
-        Uint8List.fromList(utf8.encode(plaintext)));
-    return base64Encode(ciphertext.serialize());
+        Uint8List.fromList(utf8.encode(plaintext))
+    );
+    return ciphertext.serialize(); // Return raw bytes
   }
 
-  Future<String> decrypt(String encrypted, String peerId) async {
+// Change parameter to Uint8List
+  Future<String> decrypt(Uint8List encryptedBytes, String peerId) async {
     final cipher = _sessionCiphers[peerId];
     if (cipher == null) {
       throw Exception("No cipher for peer $peerId");
     }
 
-    final bytes = base64Decode(encrypted);
+    final bytes = encryptedBytes; // Use raw bytes directly
     final completer = Completer<Uint8List>();
 
-    if (bytes[0] == 3) {
+    try {
+      if (bytes.isEmpty) {
+        throw Exception("Empty byte stream");
+      }
 
-      final preKeyMessage = PreKeySignalMessage(bytes);
-      await cipher.decryptWithCallback(preKeyMessage, (plaintext) {
-        completer.complete(plaintext);
-      });
-    } else {
+      if (bytes[0] == 3) {
+        final preKeyMessage = PreKeySignalMessage(bytes);
+        await cipher.decryptWithCallback(preKeyMessage, (plaintext) {
+          completer.complete(plaintext);
+        });
+      } else {
+        final signalMessage = SignalMessage.fromSerialized(bytes);
+        await cipher.decryptFromSignalWithCallback(signalMessage, (plaintext) {
+          completer.complete(plaintext);
+        });
+      }
 
-      final signalMessage = SignalMessage.fromSerialized(bytes);
-      await cipher.decryptFromSignalWithCallback(signalMessage, (plaintext) {
-        completer.complete(plaintext);
-      });
+      final plaintextBytes = await completer.future;
+      return utf8.decode(plaintextBytes);
+    } catch (e) {
+      print("❌ Signal decrypt error: $e");
+      throw Exception("Failed to decrypt message: $e");
     }
-
-    final plaintextBytes = await completer.future;
-    return utf8.decode(plaintextBytes);
   }
 
 

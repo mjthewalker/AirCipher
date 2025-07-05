@@ -4,11 +4,13 @@ import 'dart:async';
 class VoiceCallScreen extends StatefulWidget {
   final WebRTCService webrtc;
   final bool isCaller;
+  final String peerId;
 
   const VoiceCallScreen({
     Key? key,
     required this.webrtc,
     required this.isCaller,
+    required this.peerId,
   }) : super(key: key);
 
   @override
@@ -82,7 +84,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
               label: const Text('Hang Up'),
               onPressed: () {
                 widget.webrtc.stopVoiceCall();
-                widget.webrtc.sendMessage('hangup');
+                widget.webrtc.sendMessage('hangup',widget.peerId);
                 Navigator.pop(context);
               },
             ),

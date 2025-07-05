@@ -5,7 +5,8 @@ import 'voice_call_screen.dart';
 
 class ChannelScreen extends StatefulWidget {
   final WebRTCService webrtc;
-  const ChannelScreen({Key? key, required this.webrtc}) : super(key: key);
+  final String peerId;
+  const ChannelScreen({Key? key, required this.webrtc,required this.peerId}) : super(key: key);
 
   @override
   _ChannelScreenState createState() => _ChannelScreenState();
@@ -38,6 +39,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
           builder: (_) => VoiceCallScreen(
             webrtc: widget.webrtc,
             isCaller: false,
+            peerId: widget.peerId,
           ),
         ),
       );
@@ -67,7 +69,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
     final text = _ctrl.text.trim();
     if (text.isEmpty) return;
     final parsed = _emojiParser.emojify(text);
-    widget.webrtc.sendMessage(parsed);
+    widget.webrtc.sendMessage(parsed,widget.peerId);
     setState(() {
       _msgs.add('📤 You: $parsed');
       _isTyping = false;
@@ -83,6 +85,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
         builder: (_) => VoiceCallScreen(
           webrtc: widget.webrtc,
           isCaller: true,
+          peerId: widget.peerId,
         ),
       ),
     );

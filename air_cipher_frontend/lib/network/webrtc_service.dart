@@ -1,15 +1,17 @@
 // lib/network/webrtc_service.dart
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'dart:async';
-
+import 'package:frontend/network/signal_service.dart';
 class WebRTCService {
   RTCPeerConnection? _peerConnection;
   RTCDataChannel? _dataChannel;
   MediaStream? _localStream;
   MediaStream? _remoteStream;
-
+  final SignalService signalService;
+  String? remotePeerId;
+  WebRTCService(this.signalService);
   final _config = <String, dynamic>{
-    'iceServers': [],      // LAN-only
+    'iceServers': [],
     'iceTransportPolicy': 'all',
     'sdpSemantics': 'unified-plan',
   };
@@ -83,7 +85,9 @@ class WebRTCService {
   }
 
   /// Callee: answer chat
-  Future<String> createChatAnswer(String remoteSdp) async {
+  Future<String> createChatAnswer(String remoteSdp,String senderPeerId) async {
+    remotePeerId = senderPeerId;
+    print("remote peer ID : $remotePeerId");
     await initConnection(isCaller: false);
     await _peerConnection!.setRemoteDescription(RTCSessionDescription(remoteSdp, 'offer'));
     final answer = await _peerConnection!.createAnswer();
@@ -92,17 +96,20 @@ class WebRTCService {
   }
 
   /// Caller: set remote chat answer
-  Future<void> setChatAnswer(String sdp) async {
+  Future<void> setChatAnswer(String sdp,String senderPeerId) async {
+    remotePeerId = senderPeerId;
+    print("remote peer ID chat : $remotePeerId");
     await _peerConnection!.setRemoteDescription(RTCSessionDescription(sdp, 'answer'));
   }
 
   /// Send a text message
-  void sendMessage(String text) {
+  void sendMessage(String text,String peerId) async {
     if (_dataChannel == null || _dataChannel!.state != RTCDataChannelState.RTCDataChannelOpen) {
       print('Data channel not ready!');
       return;
     }
-    _dataChannel?.send(RTCDataChannelMessage(text));
+    final encrypted = await signalService.encrypt(text, remotePeerId!);
+    _dataChannel?.send(RTCDataChannelMessage.fromBinary(encrypted));
   }
 
   void _setupDataChannel() {
@@ -118,7 +125,12 @@ class WebRTCService {
         final remoteSdp = text.substring(7);
         await handleVoiceAnswer(remoteSdp);
       } else {
-        _msgController.add(text);
+        if (remotePeerId != null) {
+          final decrypted = await signalService.decrypt(msg.binary, remotePeerId!);
+          _msgController.add(decrypted);
+        } else {
+          print("⚠️ Warning: remotePeerId is null, can't decrypt.");
+        }
       }
     };
   }
