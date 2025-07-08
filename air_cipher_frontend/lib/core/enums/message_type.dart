@@ -6,4 +6,5 @@ enum MessagesType {
   voiceOffer,
   voiceAnswer,
   preKeyBundle,
-  encryptedChat, }
+  encryptedChat,
+}

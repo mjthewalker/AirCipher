@@ -1,3 +1,0 @@
-/root/AirCipher/air_cipher_backend/build/CMakeFiles/server.dir
-/root/AirCipher/air_cipher_backend/build/CMakeFiles/edit_cache.dir
-/root/AirCipher/air_cipher_backend/build/CMakeFiles/rebuild_cache.dir

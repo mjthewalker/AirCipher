@@ -31,7 +31,8 @@ class UdpSignalMessage {
     final json = jsonDecode(jsonStr);
     return UdpSignalMessage(
       id: json['id'],
-      type: MessagesType.values.firstWhere((e) => e.toString().split('.').last == json['type']),
+      type: MessagesType.values
+          .firstWhere((e) => e.toString().split('.').last == json['type']),
       sdp: json['sdp'],
       candidate: json['candidate'],
       jsonPayload: json['jsonPayload'],
@@ -42,13 +43,13 @@ class UdpSignalMessage {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'type': type.toString().split('.').last,
-    if (sdp != null) 'sdp': sdp,
-    if (candidate != null) 'candidate': candidate,
-    if (jsonPayload!=null) 'jsonPayload' : jsonPayload,
-    if (sdpMid != null) 'sdpMid': sdpMid,
-    if (bundle != null) 'bundle': bundle,
-    if (sdpMLineIndex != null) 'sdpMLineIndex': sdpMLineIndex,
-  };
+        'id': id,
+        'type': type.toString().split('.').last,
+        if (sdp != null) 'sdp': sdp,
+        if (candidate != null) 'candidate': candidate,
+        if (jsonPayload != null) 'jsonPayload': jsonPayload,
+        if (sdpMid != null) 'sdpMid': sdpMid,
+        if (bundle != null) 'bundle': bundle,
+        if (sdpMLineIndex != null) 'sdpMLineIndex': sdpMLineIndex,
+      };
 }

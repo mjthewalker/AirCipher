@@ -8,6 +8,7 @@ import 'package:frontend/network/peer_discovery.dart';
 import 'package:frontend/core/entities/peer_entity.dart';
 import 'package:frontend/network/webrtc_service.dart';
 import 'package:frontend/features/chat/presentation/screens/channel_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -29,14 +30,15 @@ class _HomeScreenState extends State<HomeScreen> {
   bool sent = false;
 
   @override
-  void initState()  {
+  void initState() {
     super.initState();
     _initServices();
   }
+
   void _initServices() async {
     signalService = await SignalService.create(peerId);
     webrtc = WebRTCService(signalService);
-    discovery = PeerDiscoveryService(webrtc,signalService,peerId);
+    discovery = PeerDiscoveryService(webrtc, signalService, peerId);
 
     discovery.onPeerFound.listen((peer) {
       if (!_availablePeers.containsKey(peer.id)) {
@@ -61,12 +63,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (recieverId != null) {
         print("not null");
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ChannelScreen(
-              webrtc: webrtc,
-              peerId: recieverId!)),
+          MaterialPageRoute(
+              builder: (_) =>
+                  ChannelScreen(webrtc: webrtc, peerId: recieverId!)),
         );
       }
-
     });
   }
 
@@ -81,8 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_started) {
       discovery.start();
       setState(() => _started = true);
-    }
-    else {
+    } else {
       discovery.stop();
       setState(() => _started = false);
     }
@@ -150,17 +150,22 @@ class _HomeScreenState extends State<HomeScreen> {
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _started ? Colors.deepPurpleAccent : Colors.purpleAccent,
+                    backgroundColor: _started
+                        ? Colors.deepPurpleAccent
+                        : Colors.purpleAccent,
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 28, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
                     elevation: 8,
                     shadowColor: Colors.black54,
                   ),
                   onPressed: _startDiscovery,
                   child: Text(
                     _started ? '🔴 Stop Discovery' : '🟣 Start Discovery',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -187,55 +192,61 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _availablePeers.isEmpty
                     ? Center(
-                  child: Text(
-                    _started
-                        ? '🔍 Scanning nearby peers…'
-                        : 'Press “Start Discovery” to begin.',
-                    style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                )
+                        child: Text(
+                          _started
+                              ? '🔍 Scanning nearby peers…'
+                              : 'Press “Start Discovery” to begin.',
+                          style: const TextStyle(
+                              color: Color(0xFF9A9A9A), fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
                     : ListView.builder(
-                  itemCount: _availablePeers.length,
-                  itemBuilder: (ctx, i) {
-                    final peer = _availablePeers.values.elementAt(i);
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1F1B2E), Color(0xFF181625)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black54,
-                            blurRadius: 6,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
+                        itemCount: _availablePeers.length,
+                        itemBuilder: (ctx, i) {
+                          final peer = _availablePeers.values.elementAt(i);
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOut,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF1F1B2E), Color(0xFF181625)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black54,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 14),
+                              onTap: () => _connectToPeer(peer),
+                              leading: const Icon(
+                                  Icons.person_pin_circle_rounded,
+                                  color: Color(0xFFE26EE5),
+                                  size: 34),
+                              title: Text(
+                                'Peer ID: ${peer.id}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              subtitle: Text(
+                                '${peer.address}:${peer.port}',
+                                style:
+                                    const TextStyle(color: Color(0xFF9A9A9A)),
+                              ),
+                              trailing: const Icon(Icons.chevron_right,
+                                  color: Colors.white70),
+                            ),
+                          );
+                        },
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        onTap: () => _connectToPeer(peer),
-                        leading: const Icon(Icons.person_pin_circle_rounded,
-                            color: Color(0xFFE26EE5), size: 34),
-                        title: Text(
-                          'Peer ID: ${peer.id}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        subtitle: Text(
-                          '${peer.address}:${peer.port}',
-                          style: const TextStyle(color: Color(0xFF9A9A9A)),
-                        ),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.white70),
-                      ),
-                    );
-                  },
-                ),
               ),
             ],
           ),

@@ -12,14 +12,13 @@ class SignalService {
   final Map<String, SecretKey> _sharedSecrets = {};
 
   SignalService._(
-      this.id,
-      this._x25519KeyPair,
-      this._x25519PublicKey,
-      this._ed25519KeyPair,
-      this._ed25519PublicKey,
-      );
+    this.id,
+    this._x25519KeyPair,
+    this._x25519PublicKey,
+    this._ed25519KeyPair,
+    this._ed25519PublicKey,
+  );
 
-  /// Create with both X25519 and Ed25519 keys.
   static Future<SignalService> create(String id) async {
     final xKeyPair = await X25519().newKeyPair();
     final xPubKey = await xKeyPair.extractPublicKey();
@@ -34,7 +33,6 @@ class SignalService {
     print("🔐 SignalService ready for $id");
   }
 
-  /// Returns this peer’s public bundle, signed for authenticity.
   Future<Map<String, dynamic>> getPreKeyBundle() async {
     final message = utf8.encode(id) + _x25519PublicKey.bytes;
     final signature = await Ed25519().sign(message, keyPair: _ed25519KeyPair);
@@ -47,7 +45,6 @@ class SignalService {
     };
   }
 
-  /// Validates and processes a remote pre-key bundle.
   Future<void> processRemoteBundle(Map<String, dynamic> bundle) async {
     final peerId = bundle['senderId'];
     final x25519Bytes = base64Decode(bundle['x25519Key']);
@@ -119,9 +116,8 @@ class SignalService {
     return utf8.decode(clearText);
   }
 
-  /// Optional: Identity fingerprint for human verification
   String getFingerprint() {
     final digest = sha256.convert(_ed25519PublicKey.bytes);
-    return digest.toString().substring(0, 12); // Short fingerprint
+    return digest.toString().substring(0, 12);
   }
 }

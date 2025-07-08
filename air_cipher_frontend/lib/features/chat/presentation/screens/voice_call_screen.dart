@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/network/webrtc_service.dart';
 import 'dart:async';
+
 class VoiceCallScreen extends StatefulWidget {
   final WebRTCService webrtc;
   final bool isCaller;
@@ -64,8 +65,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
               _connected
                   ? 'You are now connected'
                   : (widget.isCaller ? 'Calling...' : 'Incoming call'),
-              style: theme.textTheme.titleLarge!
-                  .copyWith(
+              style: theme.textTheme.titleLarge!.copyWith(
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -75,7 +75,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
                 padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -84,7 +84,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
               label: const Text('Hang Up'),
               onPressed: () {
                 widget.webrtc.stopVoiceCall();
-                widget.webrtc.sendMessage('hangup',widget.peerId);
+                widget.webrtc.sendMessage('hangup', widget.peerId);
                 Navigator.pop(context);
               },
             ),
