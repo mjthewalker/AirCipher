@@ -111,9 +111,5 @@ lib/
 
 ---
 
-## 📚 License
 
-[MIT License](LICENSE)
-
----
 
