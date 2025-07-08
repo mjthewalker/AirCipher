@@ -14,6 +14,7 @@ A **privacy-first communication app** for real-time messaging and voice calls—
 - ❄️ **Pure ICE negotiation** (no STUN/TURN servers)
 - ❌ **Zero reliance on external servers** or cloud infrastructure
 - 📡 **Lightweight, low-latency local communication**
+- 🎛 **Cross-platform architecture** supporting Android and Linux via WSL
 
 ---
 
@@ -43,21 +44,38 @@ Each session is uniquely encrypted and authenticated. **No data is stored or tra
 
 ## 🧹 How It Works
 
-### ὎1 Peer Discovery
+### 🔍 1. Peer Discovery
 
 Peers broadcast availability and identity over local Wi-Fi using **UDP broadcast**.
 
-### 🔑 Key Exchange & Authentication
+### 🔑 2. Key Exchange & Authentication
 
 Peers exchange **X25519 public keys**, signed with **Ed25519** identities for authenticity.
 
-### ⚖️ Connection Establishment
+### ❄️ 3. Connection Establishment
 
-A direct **WebRTC peer-to-peer connection** is negotiated using **ICE** without external signaling.
+A direct **WebRTC peer-to-peer connection** is negotiated using **ICE** without external signaling (STUN/TURN).
 
-### 🎧 Messaging and Calls
+### 💬 4. Messaging and Calls
 
-All communication—both text and media—is **securely encrypted and transmitted** over the direct channel.
+All communication—both text and media—is **securely encrypted and transmitted** over the direct channel using **data channels** and **SDP audio tracks**.
+
+---
+
+## 🧭 Workflow Diagram
+
+```mermaid
+graph TD;
+    A[Device A] -- UDP Broadcast --> B[Device B]
+    B -- Discovery Response --> A
+    A --> C[X25519 + Ed25519 Key Bundle Signed]
+    B --> D[Verify Signature & Compute Shared Secret]
+    A --> E[WebRTC ICE Negotiation]
+    B --> F[Establish Peer Connection]
+    E --> G[Encrypted DataChannel / VoiceStream]
+    F --> G
+    G --> H[Encrypted Communication]
+```
 
 ---
 
@@ -67,7 +85,7 @@ All communication—both text and media—is **securely encrypted and transmitte
 
 - Flutter SDK (v3.10 or later)
 - Android Studio or VS Code
-- Devices on the same Wi-Fi network
+- Devices on the same local network
 
 ### Run the App
 
@@ -84,15 +102,10 @@ flutter run
 lib/
 ├── core/              # Core models, enums, utils
 ├── network/           # Discovery, signaling, and WebRTC logic
-├── ui/                # App screens and widgets
+├── services/          # Encryption, crypto, and state mgmt
+├── features/          # App screens and widgets
 └── main.dart          # Entry point
 ```
-
----
-
-## 🚀 Roadmap
-
--
 
 ---
 
@@ -101,5 +114,4 @@ lib/
 [MIT License](LICENSE)
 
 ---
-
 
