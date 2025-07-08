@@ -2,7 +2,9 @@
 
 ### ⚡ Secure. Offline. Peer-to-Peer.
 
-A **privacy-first communication app** for real-time messaging and voice calls—**without the internet**.
+**AirCipher** is a next-generation privacy-focused communication app built for environments without internet connectivity. It enables **real-time voice calling and secure messaging** directly over local Wi-Fi networks using WebRTC and cryptographic protocols. By eliminating the need for central servers, AirCipher offers a truly **offline-first** experience while maintaining strong security and low-latency performance.
+
+The core innovation lies in combining peer discovery, identity authentication, and encryption into a seamless local-first stack—ideal for educational campuses, secure internal networks, or remote areas.
 
 ---
 
