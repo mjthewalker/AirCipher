@@ -2,7 +2,7 @@
 
 ### ⚡ Secure. Offline. Peer-to-Peer.
 
-**AirCipher** is a next-generation privacy-focused communication app built for environments without internet connectivity. It enables **real-time voice calling and secure messaging** directly over local Wi-Fi networks using WebRTC and cryptographic protocols. By eliminating the need for central servers, AirCipher offers a truly **offline-first** experience while maintaining strong security and low-latency performance.
+**AirCipher** is a next-generation privacy-focused communication app built for environments without internet connectivity. It enables **real-time voice calling and secure messaging** directly over local networks using WebRTC and cryptographic protocols. By eliminating the need for central servers, AirCipher offers a truly **offline-first** experience while maintaining strong security and low-latency performance.
 
 The core innovation lies in combining peer discovery, identity authentication, and encryption into a seamless local-first stack—ideal for educational campuses, secure internal networks, or remote areas.
 
@@ -16,8 +16,6 @@ The core innovation lies in combining peer discovery, identity authentication, a
 - ❄️ **Pure ICE negotiation** (no STUN/TURN servers)
 - ❌ **Zero reliance on external servers** or cloud infrastructure
 - 📡 **Lightweight, low-latency local communication**
-- 🎛 **Cross-platform architecture** supporting Android and Linux via WSL
-
 ---
 
 ## 🛠 Tech Stack
@@ -28,7 +26,7 @@ The core innovation lies in combining peer discovery, identity authentication, a
 | Networking    | WebRTC, UDP (RawDatagramSocket), ICE           |
 | Encryption    | X25519 (Key Exchange), Ed25519 (Auth), AES-GCM |
 | Serialization | JSON                                           |
-| Platforms     | Android, Windows (WSL), Linux                  |
+| Platforms     | Android               |
 
 ---
 
@@ -104,7 +102,6 @@ flutter run
 lib/
 ├── core/              # Core models, enums, utils
 ├── network/           # Discovery, signaling, and WebRTC logic
-├── services/          # Encryption, crypto, and state mgmt
 ├── features/          # App screens and widgets
 └── main.dart          # Entry point
 ```
